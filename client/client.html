@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+    <title>Example Leaflet</title>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+	<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  </head> 
+  <style>
+    body {
+      padding: 0;
+      margin: 0;
+    }
+    html, body, #map {
+      height: 100%;
+    }
+  </style>
+
+  <body>
+    <div id="map"></div>
+    <script>
+	    var map = new L.Map('map', { center: new L.LatLng(-42.7946,147.2576), zoom: 11, attributionControl:true, zoomControl:false, minZoom:6});
+
+	    var wmsLayer = L.tileLayer.wms('http://ows.mundialis.de/services/service?', {
+		    layers: 'TOPO-OSM-WMS'
+		}).addTo(map);
+	    map.addLayer(wmsLayer);
+	    
+    </script>
+</html>

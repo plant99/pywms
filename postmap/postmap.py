@@ -1,4 +1,6 @@
 from flask import Flask, request, make_response
+import urllib
+import logging
 app = Flask(__name__)
 
 class WMSServer(object):
@@ -18,7 +20,7 @@ server = WMSServer()
 @app.route('/')
 def application():
     if request.query_string == b'':
-        res = make_response("", 200)
+        res = make_response("invalid request", 200)
         return res
     try:
         # Request info
@@ -35,7 +37,7 @@ def application():
 
         url = request.url
         server_url = urllib.parse.urljoin(url, urllib.parse.urlparse(url).path)
-
+        print(request_type, request_service)
         if (request_type in ('getcapabilities', 'capabilities') and
                 request_service == 'wms' and request_version in ('1.1.1', '')):
             return_data, return_format = server.get_capabilities(server_url)
@@ -61,3 +63,6 @@ def application():
         for response_header in response_headers:
             res.headers[response_header[0]] = response_header[1]
         return res
+
+if __name__ == "__main__":
+    app.run()

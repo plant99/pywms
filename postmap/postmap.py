@@ -1,7 +1,11 @@
+from owslib.wms import WebMapService
+
 from flask import Flask, request, make_response
 import urllib
 import logging
+
 app = Flask(__name__)
+wms = WebMapService('https://maps.heigit.org/osm-wms/service?', version='1.1.1')
 
 class WMSServer(object):
 
@@ -12,7 +16,24 @@ class WMSServer(object):
         return "capap", "text/plain"
 
     def produce_plot(self, query, mode):
-        return "should get an image", "text/plain"
+
+        # parse bbox
+        bbox = tuple(query.get("bbox").split(","))
+        bbox = [float(i) for i in bbox]
+
+        print(bbox, query.get("height"), query.get("width"))
+        img = wms.getmap(layers=["osm_auto:all"],
+                 srs='EPSG:4326',
+                 bbox=bbox,
+                 size=(query.get("height"), query.get("width")),
+                 format='image/jpeg',
+                 transparent=True
+                )
+        out = open('jpl_mosaic_visb.jpg', 'wb')
+        out.write(img.read())
+        out.close()
+        # print(type(img))
+        return img.read(), "image/jpeg"
 
 server = WMSServer()
 
@@ -25,6 +46,7 @@ def application():
     try:
         # Request info
         query = request.args
+
         # Processing
         # ToDo Refactor
         request_type = query.get('request')
@@ -37,7 +59,6 @@ def application():
 
         url = request.url
         server_url = urllib.parse.urljoin(url, urllib.parse.urlparse(url).path)
-        print(request_type, request_service)
         if (request_type in ('getcapabilities', 'capabilities') and
                 request_service == 'wms' and request_version in ('1.1.1', '')):
             return_data, return_format = server.get_capabilities(server_url)
@@ -51,7 +72,6 @@ def application():
         response_headers = [('Content-type', return_format), ('Content-Length', str(len(return_data)))]
         for response_header in response_headers:
             res.headers[response_header[0]] = response_header[1]
-
         return res
 
     except Exception as ex:

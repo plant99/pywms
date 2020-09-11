@@ -81,20 +81,12 @@ class WMSServer(object):
           })
         shapely_feature = cfeature.ShapelyFeature([shp], crs=ccrs.PlateCarree())
         ax.add_feature(shapely_feature)
-        figdata = BytesIO()
-        canvas=FigureCanvas(fig)
-        canvas.print_png(figdata)
 
-        # fig.savefig(figdata, bbox_inches='tight', format='jpeg', pad_inches=0)
-        # print(fig)
-        fig.savefig("./one.jpeg", bbox_inches='tight', format='jpeg', pad_inches=0)
-        image = Image.open("./one.jpeg")
-        img_io = BytesIO()
-        image.save(img_io, 'JPEG', quality=70)
-        img_io.seek(0)
-        # image.show()
-        
-        return img_io.read(), "image/png"
+        figdata = BytesIO()
+
+        fig.savefig(figdata, bbox_inches='tight', format='jpeg', pad_inches=0)
+        figdata.seek(0)
+        return figdata.read(), "image/png"
 
 server = WMSServer()
 

@@ -20,7 +20,7 @@ from matplotlib.offsetbox import AnchoredText
 from shapely.geometry import shape 
 import json
 from PIL import Image
-
+from cartopy.io.img_tiles import Stamen
 
 app = Flask(__name__)
 wms = WebMapService('https://maps.heigit.org/osm-wms/service?', version='1.1.1')
@@ -28,6 +28,8 @@ wms = WebMapService('https://maps.heigit.org/osm-wms/service?', version='1.1.1')
 class WMSServer(object):
 
     def __init__(self):
+        self.tiler = Stamen('terrain-background')
+        self.mercator = self.tiler.crs
         pass
 
     def get_capabilities(self, server_url=None):
@@ -41,12 +43,12 @@ class WMSServer(object):
         bounds = [bbox[0], bbox[2], bbox[1],  bbox[3]]
 
         fig = Figure()
-        ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
+        ax = fig.add_subplot(1, 1, 1, projection=self.mercator)
         ax.set_extent(bounds, crs=ccrs.PlateCarree())
 
         # Put a background image on for nice sea rendering.
-        ax.stock_img()
-        ax.add_feature(cfeature.RIVERS)
+        # ax.stock_img()
+
         # add custom shape
         shp = shape({
             "type": "Polygon",
@@ -81,7 +83,7 @@ class WMSServer(object):
           })
         shapely_feature = cfeature.ShapelyFeature([shp], crs=ccrs.PlateCarree())
         ax.add_feature(shapely_feature)
-
+        ax.add_image(self.tiler, 6)
         figdata = BytesIO()
 
         fig.savefig(figdata, bbox_inches='tight', format='jpeg', pad_inches=0)

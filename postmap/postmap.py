@@ -3,6 +3,24 @@ from owslib.wms import WebMapService
 from flask import Flask, request, make_response
 import urllib
 import logging
+from io import BytesIO, StringIO
+
+import ssl
+
+ssl._create_default_https_context = ssl._create_unverified_context
+
+
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.figure import Figure
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+from matplotlib.offsetbox import AnchoredText
+
+from shapely.geometry import shape 
+import json
+from PIL import Image
+
 
 app = Flask(__name__)
 wms = WebMapService('https://maps.heigit.org/osm-wms/service?', version='1.1.1')
@@ -16,24 +34,67 @@ class WMSServer(object):
         return "capap", "text/plain"
 
     def produce_plot(self, query, mode):
-
         # parse bbox
         bbox = tuple(query.get("bbox").split(","))
         bbox = [float(i) for i in bbox]
 
-        print(bbox, query.get("height"), query.get("width"))
-        img = wms.getmap(layers=["osm_auto:all"],
-                 srs='EPSG:4326',
-                 bbox=bbox,
-                 size=(query.get("height"), query.get("width")),
-                 format='image/jpeg',
-                 transparent=True
-                )
-        out = open('jpl_mosaic_visb.jpg', 'wb')
-        out.write(img.read())
-        out.close()
-        # print(type(img))
-        return img.read(), "image/jpeg"
+        bounds = [bbox[0], bbox[2], bbox[1],  bbox[3]]
+
+        fig = Figure()
+        ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
+        ax.set_extent(bounds, crs=ccrs.PlateCarree())
+
+        # Put a background image on for nice sea rendering.
+        ax.stock_img()
+        ax.add_feature(cfeature.RIVERS)
+        # add custom shape
+        shp = shape({
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  67.236328125,
+                  22.268764039073968
+                ],
+                [
+                  62.13867187499999,
+                  11.609193407938953
+                ],
+                [
+                  77.95898437499999,
+                  10.487811882056695
+                ],
+                [
+                  79.453125,
+                  19.145168196205297
+                ],
+                [
+                  74.1796875,
+                  22.59372606392931
+                ],
+                [
+                  67.236328125,
+                  22.268764039073968
+                ]
+              ]
+            ]
+          })
+        shapely_feature = cfeature.ShapelyFeature([shp], crs=ccrs.PlateCarree())
+        ax.add_feature(shapely_feature)
+        figdata = BytesIO()
+        canvas=FigureCanvas(fig)
+        canvas.print_png(figdata)
+
+        # fig.savefig(figdata, bbox_inches='tight', format='jpeg', pad_inches=0)
+        # print(fig)
+        fig.savefig("./one.jpeg", bbox_inches='tight', format='jpeg', pad_inches=0)
+        image = Image.open("./one.jpeg")
+        img_io = BytesIO()
+        image.save(img_io, 'JPEG', quality=70)
+        img_io.seek(0)
+        # image.show()
+        
+        return img_io.read(), "image/png"
 
 server = WMSServer()
 
